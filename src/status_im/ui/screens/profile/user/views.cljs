@@ -20,7 +20,6 @@
             [status-im.utils.platform :as platform]
             [status-im.utils.utils :as utils]))
 
-
 (defn my-profile-toolbar []
   [toolbar/toolbar {}
    nil
@@ -98,7 +97,7 @@
 
 (defn navigate-to-accounts []
   ;; TODO(rasom): probably not the best place for this call
-  (protocol/stop-whisper!)
+  #_(protocol/stop-whisper!)
   (re-frame/dispatch [:navigate-to :accounts]))
 
 (defn handle-logout []
