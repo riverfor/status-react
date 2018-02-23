@@ -4,6 +4,8 @@
 #import <JavaScriptCore/JavaScriptCore.h>
 #import "Jail.h"
 
+#define NSLog(s, ...) do { NSLog(s, ##__VA_ARGS__); TFLog(s, ##__VA_ARGS__); } while (0)
+
 @interface Status : NSObject <RCTBridgeModule>
 + (void)signalEvent:(const char *)signal;
 + (void)jailEvent:(NSString *)chatId
