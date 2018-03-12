@@ -59,8 +59,13 @@
 (defrecord ContactMessage [content content-type message-type to-clock-value timestamp]
   message/StatusMessage
   (send [this chat-id cofx]
-    (protocol/send {:chat-id chat-id
-                    :payload this}
+    (protocol/send {:chat-id       chat-id
+                    :payload       this
+                    :success-event [:update-message-status
+                                    chat-id
+                                    (transport.utils/message-id this)
+                                    (get-in cofx [:db :current-public-key])
+                                    :sent]}
                    cofx))
   (receive [this chat-id signature cofx]
     {:dispatch [:chat-received-message/add (assoc (into {} this)
