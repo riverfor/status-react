@@ -30,13 +30,13 @@
    [common/network-info]
    [common/separator]])
 
-(defn profile-actions [{:keys [pending? whisper-identity dapp?]} chat-id]
+(defn profile-actions [{:keys [new? pending? whisper-identity dapp?]} chat-id]
   [react/view action-button.styles/actions-list
-   (if pending?
+   (if (or pending? new?)
      [action-button/action-button {:label     (i18n/label :t/add-to-contacts)
                                    :icon      :icons/add
                                    :icon-opts {:color :blue}
-                                   :on-press  #(re-frame/dispatch [:add-pending-contact chat-id])}]
+                                   :on-press  #(re-frame/dispatch [:add-contact whisper-identity])}]
      [action-button/action-button-disabled {:label (i18n/label :t/in-contacts) :icon :icons/ok}])
    [action-button/action-separator]
    [action-button/action-button {:label     (i18n/label :t/start-conversation)

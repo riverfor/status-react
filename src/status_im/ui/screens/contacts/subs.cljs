@@ -1,6 +1,7 @@
 (ns status-im.ui.screens.contacts.subs
   (:require [clojure.string :as string]
             [re-frame.core :refer [reg-sub subscribe]]
+            [status-im.ui.screens.contacts.events :as events]
             [status-im.utils.ethereum.core :as ethereum]
             [status-im.utils.identicon :as identicon]))
 
@@ -101,7 +102,8 @@
 (reg-sub :contact
   (fn [db]
     (let [identity (:contacts/identity db)]
-      (get-in db [:contacts/contacts identity]))))
+      (or (get-in db [:contacts/contacts identity])
+          (assoc (events/whisper-id->new-contact identity) :new? true)))))
 
 (reg-sub :contact-by-identity
   (fn [db [_ identity]]

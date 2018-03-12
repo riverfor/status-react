@@ -251,6 +251,11 @@
              (select-keys current-account [:name :photo-path :status
                                            :updates-public-key :updates-private-key])))))
 
+(defn whisper-id->new-contact [whisper-id]
+  {:name             (generate-gfy whisper-id)
+   :photo-path       (identicon whisper-id)
+   :whisper-identity whisper-id})
+
 (defn add-new-contact [fx {:keys [whisper-identity] :as contact}]
   (-> fx
       (send-contact-request contact)
@@ -258,21 +263,12 @@
       (assoc-in  [:db :contacts/new-identity] "")
       (assoc ::save-contact contact)))
 
-(register-handler-fx
-  :add-new-contact-and-open-chat
-  (fn [{:keys [db]} [_ {:keys [whisper-identity] :as contact}]]
-    (when-not (get-in db [:contacts/contacts whisper-identity])
-      (let [contact (assoc contact :address (public-key->address whisper-identity))]
-        (-> {:db db}
-            (add-new-contact contact)
-            (update :db #(navigation/navigate-to-clean % :home))
-            (assoc :dispatch [:start-chat whisper-identity {:navigation-replace? true}]))))))
-
-(defn add-pending-contact [{:keys [db] :as fx} chat-or-whisper-id]
+(defn add-contact [{:keys [db] :as fx} chat-or-whisper-id]
   (let [{:keys [chats] :contacts/keys [contacts]} db
         contact (if-let [contact-info (get-in chats [chat-or-whisper-id :contact-info])]
                   (read-string contact-info)
-                  (get contacts chat-or-whisper-id))
+                  (or (get contacts chat-or-whisper-id)
+                      (whisper-id->new-contact chat-or-whisper-id)))
         contact' (assoc contact
                         :address (public-key->address chat-or-whisper-id)
                         :pending? false)]
@@ -282,15 +278,15 @@
         (add-new-contact contact'))))
 
 (register-handler-fx
-  :add-pending-contact
+  :add-contact
   (fn [{:keys [db]} [_ chat-or-whisper-id]]
-    (add-pending-contact {:db db} chat-or-whisper-id)))
+    (add-contact {:db db} chat-or-whisper-id)))
 
 (register-handler-fx
-  :add-pending-contact-and-open-chat
+  :add-contact-and-open-chat
   (fn [{:keys [db]} [_ whisper-id]]
     (-> {:db db}
-        (add-pending-contact whisper-id)
+        (add-contact whisper-id)
         (update :db #(navigation/navigate-to-clean % :home))
         (assoc :dispatch [:start-chat whisper-id {:navigation-replace? true}]))))
 
@@ -385,8 +381,4 @@
   (fn [{:keys [db]}]
     (let [{:contacts/keys [new-identity]} db]
       (when (and new-identity (not (string/blank? new-identity)))
-        {:dispatch (if (get-in db [:contacts/contacts new-identity])
-                     [:add-pending-contact-and-open-chat new-identity]
-                     [:add-new-contact-and-open-chat {:name             (generate-gfy new-identity)
-                                                      :photo-path       (identicon new-identity)
-                                                      :whisper-identity new-identity}])}))))
+        {:dispatch [:add-contact-and-open-chat new-identity]}))))
