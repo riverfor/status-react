@@ -1,13 +1,13 @@
 (ns status-im.chat.events
-  (:require [clojure.set :as set] 
+  (:require [clojure.set :as set]
             [re-frame.core :as re-frame]
             [status-im.constants :as constants]
             [status-im.i18n :as i18n]
             [status-im.chat.models :as models]
             [status-im.chat.console :as console]
-            [status-im.chat.constants :as chat.constants] 
+            [status-im.chat.constants :as chat.constants]
             [status-im.ui.components.list-selection :as list-selection]
-            [status-im.ui.screens.navigation :as navigation] 
+            [status-im.ui.screens.navigation :as navigation]
             [status-im.utils.handlers :as handlers]
             status-im.chat.events.commands
             status-im.chat.events.requests
@@ -70,6 +70,15 @@
   [re-frame/trim-v]
   (fn [db [{:keys [chat-id message-id]}]]
     (update-in db [:chats chat-id :messages message-id] assoc :appearing? false)))
+
+(handlers/register-handler-fx
+  :update-message-status
+  [re-frame/trim-v]
+  (fn [{:keys [db]} [chat-id message-id user-id status]]
+    (let [msg-path [:chats chat-id :messages message-id] 
+          new-db   (update-in db (conj msg-path :user-statuses) assoc user-id status)]
+      {:db             new-db
+       :update-message (-> (get-in new-db msg-path) (select-keys [:message-id :user-statuses]))})))
 
 (defn init-console-chat
   [{:keys [chats] :as db}]
