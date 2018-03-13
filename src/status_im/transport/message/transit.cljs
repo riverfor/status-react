@@ -26,6 +26,12 @@
   (rep [this {:keys [content content-type message-type to-clock-value timestamp]}]
     #js [content content-type message-type to-clock-value timestamp]))
 
+(deftype ContactMessagesSeenHandler []
+  Object
+  (tag [this v] "c5")
+  (rep [this {:keys [message-ids]}]
+    (clj->js message-ids)))
+
 (def reader (transit/reader :json
                             {:handlers
                              {"c1" (fn [[sym-key message]]
@@ -35,14 +41,17 @@
                               "c3" (fn [[name profile-image address fcm-token]]
                                      (v1.contact/ContactRequestConfirmed. name profile-image address fcm-token))
                               "c4" (fn [[content content-type message-type to-clock-value timestamp]]
-                                     (v1.contact/ContactMessage. content content-type message-type to-clock-value timestamp))}}))
+                                     (v1.contact/ContactMessage. content content-type message-type to-clock-value timestamp))
+                              "c5" (fn [message-ids]
+                                     (v1.contact/ContactMessagesSeen. message-ids))}}))
 
 (def writer (transit/writer :json
                             {:handlers
                              {v1.contact/NewContactKey (NewContactKeyHandler.)
                               v1.contact/ContactRequest (ContactRequestHandler.)
                               v1.contact/ContactRequestConfirmed (ContactRequestConfirmedHandler.)
-                              v1.contact/ContactMessage (ContactMessageHandler.)}}))
+                              v1.contact/ContactMessage (ContactMessageHandler.)
+                              v1.contact/ContactMessagesSeen (ContactMessagesSeenHandler.)}}))
 
 (defn serialize [o] (transit/write writer o))
 (defn deserialize [o] (try (transit/read reader o) (catch :default e nil)))

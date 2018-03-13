@@ -9,6 +9,8 @@
             [status-im.ui.components.list-selection :as list-selection]
             [status-im.ui.screens.navigation :as navigation]
             [status-im.utils.handlers :as handlers]
+            [status-im.transport.message.core :as transport]
+            [status-im.transport.message.v1.contact :as transport-contact]
             status-im.chat.events.commands
             status-im.chat.events.requests
             status-im.chat.events.send-message
@@ -75,7 +77,7 @@
   :update-message-status
   [re-frame/trim-v]
   (fn [{:keys [db]} [chat-id message-id user-id status]]
-    (let [msg-path [:chats chat-id :messages message-id] 
+    (let [msg-path [:chats chat-id :messages message-id]
           new-db   (update-in db (conj msg-path :user-statuses) assoc user-id status)]
       {:db             new-db
        :update-message (-> (get-in new-db msg-path) (select-keys [:message-id :user-statuses]))})))
@@ -157,18 +159,38 @@
   (fn [_ [_ link]]
     {:browse link}))
 
+(defn- send-messages-seen
+  [chat-id {:keys [db] :as cofx}]
+  (let [me              (:current-chat-id db)
+        messages-path   [:chats chat-id :messages]
+        unseen-messages (filter (fn [{:keys [user-statuses outgoing]}]
+                                  (and (not outgoing)
+                                       (not= (get user-statuses me) :seen)))
+                                (vals (get-in db messages-path)))]
+    (when (seq unseen-messages) 
+      (handlers/merge-fx cofx
+                         {:db (reduce (fn [new-db {:keys [message-id]}]
+                                        (assoc-in db (into messages-path [message-id :user-statuses me]) :seen))
+                                      db
+                                      unseen-messages)}
+                         (transport/send (transport-contact/map->ContactMessagesSeen
+                                          {:message-ids (map :message-id unseen-messages)})
+                                         chat-id)))))
+
+(defn- fire-off-chat-loaded-event
+  [chat-id {:keys [db]}]
+  (when-let [event (get-in db [:chats chat-id :chat-loaded-event])]
+    {:db       (update-in [:chats chat-id] dissoc :chat-loaded-event)
+     :dispatch event}))
+
 (defn preload-chat-data
   "Takes coeffects map and chat-id, returns effects necessary when navigating to chat"
-  [{:keys [db]} chat-id]
-  (let [chat-loaded-event (get-in db [:chats chat-id :chat-loaded-event])]
-    (cond-> {:db (-> db
-                     (assoc :current-chat-id chat-id)
-                     (assoc-in [:chats chat-id :was-opened?] true)
-                     (models/set-chat-ui-props {:validation-messages nil})
-                     (update-in [:chats chat-id] dissoc :chat-loaded-event))}
-
-      chat-loaded-event
-      (assoc :dispatch chat-loaded-event))))
+  [{:keys [db] :as cofx} chat-id]
+  (handlers/merge-fx cofx
+                     {:db (-> (assoc db :current-chat-id chat-id)
+                              (models/set-chat-ui-props {:validation-messages nil}))}
+                     (fire-off-chat-loaded-event chat-id)
+                     (send-messages-seen chat-id)))
 
 (handlers/register-handler-fx
   :add-chat-loaded-event

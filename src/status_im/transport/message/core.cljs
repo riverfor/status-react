@@ -25,7 +25,7 @@
 
 
 ;;TODO (yenda) this is probably not the place to have these
-(defn- receive-contact-request
+(defn receive-contact-request
   [public-key
    {:keys [name profile-image address fcm-token]}
    {{:contacts/keys [contacts] :as db} :db :as cofx}]
@@ -45,7 +45,7 @@
                           :save-contact contact-props}
                          (models.chat/add-chat public-key chat-props)))))
 
-(defn- receive-contact-request-confirmation
+(defn receive-contact-request-confirmation
   [public-key {:keys [name profile-image address fcm-token]}
    {{:contacts/keys [contacts] :as db} :db :as cofx}]
   (when-let [contact (get contacts public-key)]
@@ -60,3 +60,13 @@
                          {:db           (update-in db [:contacts/contacts public-key] merge contact-props)
                           :save-contact contact-props}
                          (models.chat/upsert-chat chat-props)))))
+
+(defn receive-seen
+  [chat-id sender message-ids {:keys [db]}] 
+  (when-let [seen-messages-ids (-> (get-in db [:chats chat-id :messages])
+                                   (select-keys message-ids)
+                                   keys)]
+    {:db (reduce (fn [new-db message-id]
+                   (assoc-in new-db [:chats chat-id :messages message-id :user-statuses sender] :seen))
+                 db
+                 seen-messages-ids)}))

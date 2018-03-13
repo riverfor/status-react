@@ -45,8 +45,7 @@
     (let [message-id (transport.utils/message-id this)]
       (handlers/merge-fx cofx
                          (protocol/requires-ack message-id chat-id)
-                         (protocol/send {:web3    (get-in cofx [:db :web3])
-                                         :chat-id chat-id
+                         (protocol/send {:chat-id chat-id
                                          :payload this}))))
   (receive [this chat-id signature cofx]
     (let [message-id (transport.utils/message-id this)]
@@ -72,6 +71,15 @@
                                                   :message-id (transport.utils/message-id this)
                                                   :chat-id    chat-id
                                                   :from       signature)]}))
+
+(defrecord ContactMessagesSeen [message-ids]
+  message/StatusMessage
+  (send [this chat-id cofx]
+    (protocol/send {:chat-id chat-id
+                    :payload this}
+                   cofx))
+  (receive [this chat-id signature cofx]
+    (message/receive-seen chat-id signature (:message-ids this) cofx)))
 
 (handlers/register-handler-fx
   ::send-new-sym-key
