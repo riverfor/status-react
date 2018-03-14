@@ -1,8 +1,7 @@
 (ns status-im.ui.screens.profile.user.views
   (:require-macros [status-im.utils.views :refer [defview letsubs]])
   (:require [re-frame.core :as re-frame]
-            [status-im.i18n :as i18n]
-            [status-im.protocol.core :as protocol]
+            [status-im.i18n :as i18n] 
             [status-im.ui.components.action-button.styles :as action-button.styles]
             [status-im.ui.components.colors :as colors]
             [status-im.ui.components.common.styles :as common.styles]
