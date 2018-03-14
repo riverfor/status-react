@@ -55,15 +55,6 @@
                            (message/receive-contact-request-confirmation signature
                                                                          this))))))
 
-(defrecord ContactMessagesSeen [message-ids]
-  message/StatusMessage
-  (send [this chat-id cofx]
-    (protocol/send {:chat-id chat-id
-                    :payload this}
-                   cofx))
-  (receive [this chat-id signature cofx]
-    (message/receive-seen chat-id signature (:message-ids this) cofx)))
-
 (handlers/register-handler-fx
   ::send-new-sym-key
   (fn [{:keys [db] :as cofx} [_ {:keys [chat-id message sym-key sym-key-id]}]]
@@ -106,11 +97,11 @@
       (println  "Time: " (str (- (inst-ms (js/Date.)) @timer)))
       (handlers/merge-fx cofx
                          {:dispatch [this timer chat-id (dec n)]}
-                         (message/send (map->ContactMessage {:content (str n)
-                                                             :content-type "text/plain"
-                                                             :message-type :user-message
-                                                             :clock-value n
-                                                             :timestamp (str (inst-ms (js/Date.)))})
+                         (message/send (protocol/map->Message {:content (str n)
+                                                               :content-type "text/plain"
+                                                               :message-type :user-message
+                                                               :clock-value n
+                                                               :timestamp (str (inst-ms (js/Date.)))})
                                        chat-id)))))
 
 #_(re-frame/dispatch [:send-test-message (atom (inst-ms (js/Date.))) "0x04ae4c56aa22e668fd4659acadf8a141981cbae4b8d8c2d63edbeecc16fca1338c43ae7f2bde4b34f877f41149f97c32f1b4189c3f7f87f1e4d1fa6d833bc0272e" 100])

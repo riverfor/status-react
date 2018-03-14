@@ -10,7 +10,7 @@
             [status-im.ui.screens.navigation :as navigation]
             [status-im.utils.handlers :as handlers]
             [status-im.transport.message.core :as transport]
-            [status-im.transport.message.v1.contact :as transport-contact]
+            [status-im.transport.message.v1.protocol :as protocol]
             status-im.chat.events.commands
             status-im.chat.events.requests
             status-im.chat.events.send-message
@@ -164,9 +164,7 @@
                                           unseen-messages-ids)
                                   (update-in [:chats chat-id :unviewed-messages] set/difference unseen-messages-ids))}
                          (persist-seen-messages chat-id unseen-messages-ids)
-                         (transport/send (transport-contact/map->ContactMessagesSeen
-                                          {:message-ids unseen-messages-ids})
-                                         chat-id)))))
+                         (transport/send (protocol/map->MessagesSeen {:message-ids unseen-messages-ids}) chat-id)))))
 
 (defn- fire-off-chat-loaded-event
   [chat-id {:keys [db]}]

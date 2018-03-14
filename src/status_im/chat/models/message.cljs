@@ -9,7 +9,7 @@
             [status-im.utils.handlers :as handlers]
             [status-im.transport.utils :as transport.utils]
             [status-im.transport.message.core :as transport]
-            [status-im.transport.message.v1.contact :as transport-contact]))
+            [status-im.transport.message.v1.protocol :as protocol]))
 
 (def receive-interceptors
   [(re-frame/inject-cofx :get-stored-message) (re-frame/inject-cofx :get-stored-chat)
@@ -60,7 +60,7 @@
 
 (defn- send-message-seen [chat-id message-id send-seen? cofx]
   (when send-seen?
-    (transport/send (transport-contact/map->ContactMessagesSeen {:message-ids #{message-id}}) chat-id cofx)))
+    (transport/send (protocol/map->MessagesSeen {:message-ids #{message-id}}) chat-id cofx)))
 
 (defn- placeholder-message [chat-id from timestamp temp-id to-clock]
   {:message-id       temp-id
@@ -217,7 +217,7 @@
 (def ^:private transport-keys [:content :content-type :message-type :to-clock-value :timestamp])
 
 (defn- upsert-and-send [{:keys [chat-id] :as message} cofx]
-  (let [send-record     (transport-contact/map->ContactMessage (select-keys message transport-keys))
+  (let [send-record     (protocol/map->Message (select-keys message transport-keys))
         message-with-id (assoc message :message-id (transport.utils/message-id send-record))]
     (handlers/merge-fx cofx
                        (chat-model/upsert-chat {:chat-id chat-id})

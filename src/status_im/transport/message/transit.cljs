@@ -1,5 +1,6 @@
 (ns status-im.transport.message.transit
   (:require [status-im.transport.message.v1.contact :as v1.contact]
+            [status-im.transport.message.v1.protocol :as v1.protocol]
             [cognitect.transit :as transit]))
 
 (deftype NewContactKeyHandler []
@@ -20,13 +21,13 @@
   (rep [this {:keys [name profile-image address fcm-token]}]
     #js [name profile-image address fcm-token]))
 
-(deftype ContactMessageHandler []
+(deftype MessageHandler []
   Object
   (tag [this v] "c4")
   (rep [this {:keys [content content-type message-type to-clock-value timestamp]}]
     #js [content content-type message-type to-clock-value timestamp]))
 
-(deftype ContactMessagesSeenHandler []
+(deftype MessagesSeenHandler []
   Object
   (tag [this v] "c5")
   (rep [this {:keys [message-ids]}]
@@ -41,17 +42,17 @@
                               "c3" (fn [[name profile-image address fcm-token]]
                                      (v1.contact/ContactRequestConfirmed. name profile-image address fcm-token))
                               "c4" (fn [[content content-type message-type to-clock-value timestamp]]
-                                     (v1.contact/ContactMessage. content content-type message-type to-clock-value timestamp))
+                                     (v1.protocol/Message. content content-type message-type to-clock-value timestamp))
                               "c5" (fn [message-ids]
-                                     (v1.contact/ContactMessagesSeen. message-ids))}}))
+                                     (v1.protocol/MessagesSeen. message-ids))}}))
 
 (def writer (transit/writer :json
                             {:handlers
                              {v1.contact/NewContactKey (NewContactKeyHandler.)
                               v1.contact/ContactRequest (ContactRequestHandler.)
                               v1.contact/ContactRequestConfirmed (ContactRequestConfirmedHandler.)
-                              v1.contact/ContactMessage (ContactMessageHandler.)
-                              v1.contact/ContactMessagesSeen (ContactMessagesSeenHandler.)}}))
+                              v1.protocol/Message (MessageHandler.)
+                              v1.protocol/MessagesSeen (MessagesSeenHandler.)}}))
 
 (defn serialize [o] (transit/write writer o))
 (defn deserialize [o] (try (transit/read reader o) (catch :default e nil)))
