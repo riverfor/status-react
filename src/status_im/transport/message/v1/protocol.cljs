@@ -5,7 +5,7 @@
             [status-im.transport.core :as transport]
             [status-im.transport.message.core :as message]))
 
-(def ttl 10000) ;; ttl of 10 sec
+(def ttl 10) ;; ttl of 10 sec
 
 (defn init-chat [chat-id {:keys [db] :as cofx}]
   {:db (assoc-in db [:transport/chats chat-id] (transport.db/create-chat (transport.utils/get-topic chat-id)))})
