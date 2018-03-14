@@ -139,6 +139,13 @@
   (fn [_ [_ link]]
     {:browse link}))
 
+(defn- persist-seen-messages
+  [chat-id unseen-messages-ids {:keys [db]}]
+  {:update-messages (map (fn [message-id]
+                           (-> (get-in db [:chats chat-id :messages message-id])
+                               (select-keys [:message-id :user-statuses])))
+                         unseen-messages-ids)})
+
 (defn- send-messages-seen
   [chat-id {:keys [db] :as cofx}]
   (let [me                  (:current-chat-id db)
@@ -156,6 +163,7 @@
                                           db
                                           unseen-messages-ids)
                                   (update-in [:chats chat-id :unviewed-messages] set/difference unseen-messages-ids))}
+                         (persist-seen-messages chat-id unseen-messages-ids)
                          (transport/send (transport-contact/map->ContactMessagesSeen
                                           {:message-ids unseen-messages-ids})
                                          chat-id)))))

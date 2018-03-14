@@ -106,6 +106,12 @@
     (async/go (async/>! core/realm-queue #(update-message message)))))
 
 (re-frame/reg-fx
+  :update-messages
+  (fn [messages]
+    (doseq [message messages]
+      (async/go (async/>! core/realm-queue #(update-message message))))))
+
+(re-frame/reg-fx
   :delete-messages
   (fn [chat-id]
     (async/go (async/>! core/realm-queue #(data-store/delete-by-chat-id chat-id)))))

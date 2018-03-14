@@ -58,6 +58,10 @@
 (defn- get-current-account [{:accounts/keys [accounts current-account-id]}]
   (get accounts current-account-id))
 
+(defn- send-message-seen [chat-id message-id send-seen? cofx]
+  (when send-seen?
+    (transport/send (transport-contact/map->ContactMessagesSeen {:message-ids #{message-id}}) chat-id cofx)))
+
 (defn- placeholder-message [chat-id from timestamp temp-id to-clock]
   {:message-id       temp-id
    :outgoing         false
@@ -78,7 +82,7 @@
                  db
                  (range (inc old-from-clock) new-from-clock))}))
 
-(defn- add-received-message [{:keys [from chat-id content content-type timestamp to-clock-value] :as message} {:keys [db now] :as cofx}]
+(defn- add-received-message [{:keys [from message-id chat-id content content-type timestamp to-clock-value] :as message} {:keys [db now] :as cofx}]
   (let [{:keys [current-chat-id
                 view-id
                 access-scope->commands-responses]
@@ -105,6 +109,7 @@
                                                 (lookup-response-ref access-scope->commands-responses
                                                                      current-account chat contacts request-command)))
                                     current-chat?)
+                       (send-message-seen chat-id message-id (and public-key current-chat?))
                        (add-placeholder-messages chat-id from new-timestamp last-from-clock-value last-to-clock-value new-from-clock-value))))
 
 (defn receive
