@@ -1,5 +1,6 @@
 (ns status-im.test.runner
   (:require [doo.runner :refer-macros [doo-tests]]
+            [status-im.test.chat.subs]
             [status-im.test.chat.events]
             [status-im.test.contacts.events]
             [status-im.test.accounts.events]
@@ -36,6 +37,7 @@
 (doo-tests
  'status-im.test.utils.async
  'status-im.test.chat.events
+ 'status-im.test.chat.subs
  'status-im.test.accounts.events
  'status-im.test.contacts.events
  'status-im.test.profile.events

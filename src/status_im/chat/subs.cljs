@@ -92,8 +92,8 @@
   "Transforms map of messages into sequence of `[datemark messages]` tuples, where
   messages with particular datemark are sorted according to their `:clock-values` and
   tuples themeselves are sorted according to the highest `:clock-values` in the messages."
-  [id->messages]
-  (let [clock-sorter (juxt :from-clock-value :to-clock-value)
+  [id->messages chat-member-pks]
+  (let [clock-sorter (fn [clocks] (mapv #(get clocks %) chat-member-pks))
         datemark->messages (transduce (comp (map second)
                                             (filter :show?)
                                             (map (fn [{:keys [timestamp] :as msg}]
@@ -104,8 +104,8 @@
                                       id->messages)]
     (->> datemark->messages
          (map (fn [[datemark messages]]
-                [datemark (->> messages (sort-by clock-sorter) reverse)]))
-         (sort-by (comp clock-sorter first second))
+                [datemark (->> messages (sort-by (comp clock-sorter :user->clock)) reverse)]))
+         (sort-by (comp clock-sorter :user->clock first second))
          reverse)))
 
 (reg-sub
