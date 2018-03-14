@@ -135,46 +135,29 @@
           (update :dispatch-n conj [:load-default-contacts!])))))
 
 (handlers/register-handler-fx
-  :send-seen!
-  [re-frame/trim-v]
-  (fn [{:keys [db]} [{:keys [chat-id from me message-id]}]]
-    (let [{:keys [web3 chats] :contacts/keys [contacts]} db
-          {:keys [group-chat public? messages]} (get chats chat-id)
-          statuses (assoc (get-in messages [message-id :user-statuses]) me :seen)]
-      (cond-> {:db             (-> db
-                                   (update-in [:chats chat-id :unviewed-messages] disj message-id)
-                                   (assoc-in [:chats chat-id :messages message-id :user-statuses] statuses))
-               :update-message {:message-id    message-id
-                                :user-statuses statuses}}
-        ;; for public chats and 1-1 bot/dapp chats, it makes no sense to signalise `:seen` msg
-        (not (or public? (get-in contacts [chat-id :dapp?])))
-        (assoc :protocol-send-seen {:web3    web3
-                                    :message (cond-> {:from       me
-                                                      :to         from
-                                                      :message-id message-id}
-                                               group-chat (assoc :group-id chat-id))})))))
-
-(handlers/register-handler-fx
   :browse-link-from-message
   (fn [_ [_ link]]
     {:browse link}))
 
 (defn- send-messages-seen
   [chat-id {:keys [db] :as cofx}]
-  (let [me              (:current-chat-id db)
-        messages-path   [:chats chat-id :messages]
-        unseen-messages (filter (fn [{:keys [user-statuses outgoing]}]
-                                  (and (not outgoing)
-                                       (not= (get user-statuses me) :seen)))
-                                (vals (get-in db messages-path)))]
-    (when (seq unseen-messages) 
+  (let [me                  (:current-chat-id db)
+        messages-path       [:chats chat-id :messages]
+        unseen-messages-ids (into #{}
+                                  (comp (filter (fn [[_ {:keys [user-statuses outgoing]}]]
+                                                  (and (not outgoing)
+                                                       (not= (get user-statuses me) :seen))))
+                                        (map first))
+                                  (get-in db messages-path))]
+    (when (seq unseen-messages-ids)
       (handlers/merge-fx cofx
-                         {:db (reduce (fn [new-db {:keys [message-id]}]
-                                        (assoc-in db (into messages-path [message-id :user-statuses me]) :seen))
-                                      db
-                                      unseen-messages)}
+                         {:db (-> (reduce (fn [new-db message-id]
+                                            (assoc-in db (into messages-path [message-id :user-statuses me]) :seen))
+                                          db
+                                          unseen-messages-ids)
+                                  (update-in [:chats chat-id :unviewed-messages] set/difference unseen-messages-ids))}
                          (transport/send (transport-contact/map->ContactMessagesSeen
-                                          {:message-ids (map :message-id unseen-messages)})
+                                          {:message-ids unseen-messages-ids})
                                          chat-id)))))
 
 (defn- fire-off-chat-loaded-event
