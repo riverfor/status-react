@@ -22,11 +22,6 @@
 ;;;; Effects
 
 (re-frame/reg-fx
-  :protocol-send-seen
-  (fn [params]
-    #_(protocol/send-seen! params)))
-
-(re-frame/reg-fx
   :browse
   (fn [link]
     (list-selection/browse link)))
@@ -159,7 +154,7 @@
     (when (seq unseen-messages-ids)
       (handlers/merge-fx cofx
                          {:db (-> (reduce (fn [new-db message-id]
-                                            (assoc-in db (into messages-path [message-id :user-statuses me]) :seen))
+                                            (assoc-in new-db (into messages-path [message-id :user-statuses me]) :seen))
                                           db
                                           unseen-messages-ids)
                                   (update-in [:chats chat-id :unviewed-messages] set/difference unseen-messages-ids))}
