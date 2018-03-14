@@ -2,7 +2,7 @@
   (:require [taoensso.timbre :as log]))
 
 (def schema {:name       :user-clock
-             :primaryKey :id
+             :primaryKey :public-key
              :properties {:public-key      "string"
                           :clock {:type    "integer"
                                   :default 0}}})
